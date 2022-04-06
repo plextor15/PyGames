@@ -2,133 +2,161 @@ import pygame
 from sys import exit
 import getpass
 
-from pygame import mouse
-from pygame import key
+
+def display_score():
+    current_time = int( pygame.time.get_ticks() / 1000 ) - start_time
+
+    score_text = game_font.render(f"My scores: {current_time}", False, 'Black')
+    score_text_rect = score_text.get_rect(topleft=(380, 100))
+    pygame.draw.rect(screen, '#c0e8ec', score_text_rect, 0, 10)
+    screen.blit(score_text, score_text_rect)
+
+    return current_time
+
 
 if __name__ == '__main__':
+
+    # Inicjalizacja wszystkich komponentow gry
     pygame.init()
 
-    #Game properties
-    pygame.display.set_caption('Pierwsza Gra')
-    screen = pygame.display.set_mode((1280, 720))
+    screen = pygame.display.set_mode((1000, 750))
     clock = pygame.time.Clock()
 
-    #Warstwy
-    #DEBUG
-    test_surface = pygame.Surface((200,200))
-    test_surface.fill('blue')
-    #
+    # Nadanie nowej nazwy okna gry
+    pygame.display.set_caption('Zombie Runner')
 
-    #Background
+    # Czcionka gry
+    game_font = pygame.font.Font('graphic/font/my_font.ttf', 60)
+
+    # Dodanie background-u
     background = pygame.image.load('graphic/background/BG.png').convert_alpha()
 
-    #Ground
-
+    # Dodanie elementow podlogi
     ground = pygame.image.load('graphic/ground/ground.png').convert_alpha()
-    
-    #Teksty
-    game_font = pygame.font.Font('graphic/font/my_font.ttf', 100) #default - (None, 60)
-    
-    #Welcome
-    text = game_font.render(f"{getpass.getuser()} Witaj!", True, 'Black')
-    text_rect = text.get_rect(topleft=(300,30))
 
-    #Score
-    score_text = game_font.render("My score:", False, 'Black')
-    score_text_rect = score_text.get_rect(topleft=(330,100))
+    # Dodanie tekstu
+    text = game_font.render(f"{getpass.getuser()} ! Witaj w grze !", False, 'Black')
+    text_rect = text.get_rect(topleft=(300, 30))
 
-    #PCs
-    #Player
-    player = pygame.image.load('graphic/characters/player/adventurer_walk1.png').convert_alpha()
-    player_rect = player.get_rect(topleft = (100, 430))
 
-    #NPCs
-    #Zombie
+    intro_text = game_font.render("Press S to Start", True, "Black")
+    intro_text_rect = intro_text.get_rect(topleft=(350, 600))
+
+    intro_title = game_font.render("Zombie Runner", True, "Black")
+    intro_title_rect = intro_title.get_rect(topleft=(370, 200))
+
+    intro_game_over = game_font.render("Game Over!", True, "Black")
+    intro_game_over_rect = intro_game_over.get_rect(topleft=(390, 300))
+
+
+    # Dodanie Zombie do gry
     zombie = pygame.image.load('graphic/characters/zombie/zombie_walk1.png').convert_alpha()
-    #zombie_x_pos = 700
-    zombie_rect = player.get_rect(topleft = (700, 430))
+    # Dodanie obszaru zombie
+    zombie_rect = zombie.get_rect(topleft=(700, 430))
+
+    # Dodanie gracza do gry
+    player = pygame.image.load('graphic/characters/player/adventurer_walk1.png').convert_alpha()
+    # Dodanie obszaru gracza
+    player_rect = player.get_rect(topleft=(100, 430))
+
+    player_gravity = 25
 
 
-    player_gravity = 0  #trzeba poprawic grawitacje
+    game_is_active = False
+    game_over = False
+    start_time = 0
+    score = 0
 
-    #Main Game Loop
+
+    # Main Loop
     while True:
+        # Obsluga wyjatkow
         for event in pygame.event.get():
+            # Obsluga wcisiecia X
             if event.type == pygame.QUIT:
                 pygame.quit()
-                exit()      #zeby byl exit code 0
+                exit()
+
+            if game_is_active:
+
+                if event.type == pygame.MOUSEBUTTONDOWN and player_rect.y == 430:
+                    player_gravity = -25
+
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE and player_rect.y == 430:
+                        player_gravity = -25
+                     
+                        
+            else:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_s:
+                    game_is_active = True
+
+                    # pozycjonowanie
+                    zombie_rect.topleft = (700, 430)
+                    player_rect.topleft = (100, 430)
+                    player_gravity = 25
+
+
+
+        if game_is_active:
+            # Ruch Zombie
+            zombie_rect.x -= 5
+            if zombie_rect.x <= -100:
+                zombie_rect.x = 1100
+
+            # Dodanie backgroundu do okna gry
+            screen.blit(background, (0, 0))
+            # Dodanie elementow podlogi do okna gry
+            screen.blit(ground, (0, 540))
+
+            pygame.draw.rect(screen, '#c0e8ec', text_rect, 0, 10)
+            # Dodanie tekstu do okna gry
+            screen.blit(text, text_rect)
+
+            score = display_score()
             
-            if event.type == pygame.MOUSEMOTION:
-                print( event.pos )
-                if player_rect.collidepoint( event.pos ):
-                    print("collide")
+            # Dodanie zombie do okna gry
+            screen.blit(zombie, zombie_rect)
+            # Dodanie gracza do ekranu gry
+            screen.blit(player, player_rect)
+
+
+
+            #pygame.display.update() ############# UPDATE #############
+
             
-            if event.type == pygame.MOUSEBUTTONDOWN and player_rect.y == 430: # and player_gravity == 0:
-                #print( "Down" )
-                player_gravity = -20    #jump
-            if event.type == pygame.MOUSEBUTTONUP:
-                #print( "Up" )
-                pass    #zeby zblowalo double jump
 
+            if player_rect.y < 430:
+                player_gravity += 1
 
-            if event.type == pygame.KEYDOWN:
-                #print("Key Down")
-                if event.key == pygame.K_SPACE:
-                    #print("Space")
-                    player_gravity = -20
-                if event.key == pygame.K_PAGEUP:
-                    print("PageUp")
-            if event.type == pygame.KEYUP:
-                print("Key Up")
-
-
-        #chodzenie zombiaka w lewo
-        zombie_rect.x -= 2
-        if zombie_rect.x <= -100:
-            zombie_rect.x = 1000
-
-        #screen.blit(test_surface, (10,10))
-        screen.blit(background, (0,0))
-        screen.blit(ground, (0,540))
-
-
-        pygame.draw.rect( screen, '#c0e8ec', text_rect, 0, 10 )
-        screen.blit(text, text_rect)
-        pygame.draw.rect( screen, '#c0e8ec', score_text_rect, 0, 10 )
-        screen.blit(score_text, score_text_rect)
-
-
-        screen.blit(player, player_rect)
-        screen.blit(zombie, zombie_rect)
-
-
-
-
-        #Kolizje
-
-        #DEBUG ONLY
-        #print( player_rect.colliderect( zombie_rect ) )
-        #print( pygame.mouse.get_pos() )
+            player_rect.y += player_gravity
         
-        #mouse_pos = pygame.mouse.get_pos()
-        #if player_rect.collidepoint( mouse_pos ):
-            #print("LOLXD")
-            #print( pygame.mouse.get_pressed() )
-        
-        keys = pygame.key.get_pressed()
-        if keys[ pygame.K_SPACE ]:
-            print( "Jump" )
-        if keys[ pygame.K_F1 ]:
-            print( "F1" )
-        
+            #DEBUG ONLY!!
+            #print(player_gravity)
 
-        pygame.display.update() ############# UPDATE #############
+            if player_rect.y >= 430: player_rect.y = 430
 
+            if player_rect.colliderect(zombie_rect):
+                game_is_active = False
+                game_over = True
 
-        player_gravity += 1 #kiedys sie przepelni bufor
-        player_rect.y += player_gravity
+                start_time = int( pygame.time.get_ticks() / 1000 )
+            
+            #clock.tick(50)      #FPSy
+        else:
+            screen.fill("#c0e8ec")
+            screen.blit(intro_text, intro_text_rect)
+            screen.blit(intro_title, intro_title_rect)
+            if game_over:
+                screen.blit( intro_game_over, intro_game_over_rect )
 
-        if player_rect.y >= 430: player_rect.y = 430
+                intro_score = game_font.render( f"Score: {score}", True, "Black" )
+                intro_score_rect = intro_score.get_rect(topleft=(360, 450))
+                screen.blit( intro_score, intro_score_rect )
 
+            #pygame.display.update()
+            #clock.tick(50)
 
-        clock.tick(50)      #FPSy
+        pygame.display.update()  ############# UPDATE #############
+        clock.tick(50)
