@@ -1,6 +1,7 @@
 import pygame
 from sys import exit
 import getpass
+from random import randint
 
 
 def display_score():
@@ -13,6 +14,38 @@ def display_score():
 
     return current_time
 
+def zombie_move(zombie_list):
+    if zombie_list:
+        for rect in zombie_list:
+            rect.x -= 5
+
+        new_zombie_list = [rect for rect in zombie_list if rect.x > -100] #aktualny wchodzi jesli
+        #for rect in zombie_list:
+        #    if rect.x > -100:
+        #        new_zombie_list.append(rect)
+
+        return new_zombie_list
+    else:
+        return []    # jak nic nie ma, nic nie daje
+
+def collision(player, zombie_list):
+    if zombie_list:
+        for rect in zombie_list:
+            if player.colliderect(rect):
+                return True
+    else:
+        return False
+
+def player_animation():
+    global player_surf, player_index    #gdziekolwiek one sa
+
+    if player_rect.bottom < 430:
+        player_surf = player_jump
+    else:
+        player_index += 0.05     #czas trwania animacji
+        if player_index >= len(player_walk):
+            player_index = 0
+        player_surf = player_walk[int(player_index)]
 
 if __name__ == '__main__':
 
@@ -50,14 +83,20 @@ if __name__ == '__main__':
 
 
     # Dodanie Zombie do gry
-    zombie = pygame.image.load('graphic/characters/zombie/zombie_walk1.png').convert_alpha()
+    zombie_surf = pygame.image.load('graphic/characters/zombie/zombie_walk1.png').convert_alpha()
     # Dodanie obszaru zombie
-    zombie_rect = zombie.get_rect(topleft=(700, 430))
+    zombie_rect = zombie_surf.get_rect(topleft=(700, 430))
+    zombie_rect_list = []
 
     # Dodanie gracza do gry
-    player = pygame.image.load('graphic/characters/player/adventurer_walk1.png').convert_alpha()
+    player_walk1 = pygame.image.load('graphic/characters/player/adventurer_walk1.png').convert_alpha()
+    player_walk2 = pygame.image.load('graphic/characters/player/adventurer_walk2.png').convert_alpha()
+    player_jump = pygame.image.load('graphic/characters/player/adventurer_jump.png').convert_alpha()
+    player_walk = [player_walk1, player_walk2]
+    player_index = 0
+    player_surf = player_walk[player_index]
     # Dodanie obszaru gracza
-    player_rect = player.get_rect(topleft=(100, 430))
+    player_rect = player_surf.get_rect(topleft=(100, 430))
 
     player_gravity = 25
 
@@ -66,6 +105,12 @@ if __name__ == '__main__':
     game_over = False
     start_time = 0
     score = 0
+
+    own_game_event = pygame.USEREVENT
+    pygame.time.set_timer(own_game_event,1500)
+
+    background_music = pygame.mixer.music.load('music/Sneaky_Snitch.mp3')
+    pygame.mixer.music.play(-1)
 
 
     # Main Loop
@@ -87,7 +132,9 @@ if __name__ == '__main__':
                     if event.key == pygame.K_SPACE and player_rect.y == 430:
                         player_gravity = -25
                      
-                        
+                if event.type == own_game_event:
+                    #print("OWN_EVENT")
+                    zombie_rect_list.append(zombie_surf.get_rect(topleft=(randint(900,1100), 430)))
             else:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_s:
                     game_is_active = True
@@ -101,9 +148,9 @@ if __name__ == '__main__':
 
         if game_is_active:
             # Ruch Zombie
-            zombie_rect.x -= 5
-            if zombie_rect.x <= -100:
-                zombie_rect.x = 1100
+            #zombie_rect.x -= 5
+            #if zombie_rect.x <= -100:
+            #    zombie_rect.x = 1100
 
             # Dodanie backgroundu do okna gry
             screen.blit(background, (0, 0))
@@ -116,10 +163,15 @@ if __name__ == '__main__':
 
             score = display_score()
             
-            # Dodanie zombie do okna gry
-            screen.blit(zombie, zombie_rect)
+
+            zombie_rect_list = zombie_move( zombie_rect_list )
+            for rect in zombie_rect_list:
+                # Dodanie zombie do okna gry
+                screen.blit(zombie_surf, rect)
+
             # Dodanie gracza do ekranu gry
-            screen.blit(player, player_rect)
+            player_animation()
+            screen.blit(player_surf, player_rect)
 
 
 
@@ -137,11 +189,12 @@ if __name__ == '__main__':
 
             if player_rect.y >= 430: player_rect.y = 430
 
-            if player_rect.colliderect(zombie_rect):
+            if collision( player_rect, zombie_rect_list ):
                 game_is_active = False
                 game_over = True
+                start_time = int( pygame.time.get_ticks() / 1000 ) # tu moze byc cheat z main menu
 
-                start_time = int( pygame.time.get_ticks() / 1000 )
+            #game_is_active = collision( player_rect, zombie_rect_list )
             
             #clock.tick(50)      #FPSy
         else:
@@ -154,6 +207,7 @@ if __name__ == '__main__':
                 intro_score = game_font.render( f"Score: {score}", True, "Black" )
                 intro_score_rect = intro_score.get_rect(topleft=(360, 450))
                 screen.blit( intro_score, intro_score_rect )
+                zombie_rect_list = []
 
             #pygame.display.update()
             #clock.tick(50)
